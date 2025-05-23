@@ -39,8 +39,7 @@ public class ConrollerDemo {
                 if (removedCar == null) {
                     System.out.println("Kuyrukta araç kalmadı.");
                     break;
-                }
-                System.out.println("Çıkarılan araç: " + removedCar);
+                }                
                 // Kalan araçların pozisyonlarını güncelle
                 int pos = 0;
                 for (Car c : queues[i]) {
