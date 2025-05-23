@@ -1,0 +1,40 @@
+package com.example.denemecontrol;
+
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Random;
+
+public class JuntionManager {
+    /// Bu kısım yine kullanılmayacak başka bir classtan alınacak.
+    private Queue<Car> queue1 = new LinkedList<>();
+    private Queue<Car> queue2 = new LinkedList<>();
+    private Queue<Car> queue3 = new LinkedList<>();
+    private Queue<Car> queue4 = new LinkedList<>();
+
+    Queue<Car>[] queues = new Queue[]{queue1, queue2, queue3, queue4};
+
+    public void AraçÜret() {
+        Random random = new Random();
+        int[] carSize = {5, 10, 15, 20};
+
+
+        for (int i = 0; i < queues.length; i++) {
+            for (int j = 0; j < carSize[i]; j++) {
+                queues[i].add(new Car(random.nextInt(100), random.nextInt(100)));
+            }
+        }
+    }
+    // Araç sayılarına göre sürekli bir fonksiyon gibi double yeşil ışık süresi return eder.
+    public double[] yeşilSüresiArrays(int total) {
+        AraçÜret();
+        double[] süreler = new double[4];
+        double araçSayisi = queue1.size() + queue2.size() + queue3.size() + queue4.size();
+        if (araçSayisi == 0)
+            return new double[]{0, 0, 0, 0};
+        double orantıKaysayısı = total / araçSayisi;
+        for (int i = 0; i < 4; i++) {
+            süreler[i] = queues[i].size() * orantıKaysayısı;
+        }
+        return süreler;
+    }
+}
