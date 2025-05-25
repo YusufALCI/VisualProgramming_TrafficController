@@ -1,0 +1,64 @@
+package edu.erciyes.group25;
+
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Random;
+
+public class RoadWestRight extends Road {
+
+    protected Queue<Car> queue1 = new LinkedList<>();
+    protected Queue<Car>[] queues1 = new Queue[]{queue1};
+
+    ///  MANUEL OLARAK ARAÇ ÜRETİLDİ. BU KISMI ORJİNAL KODDA OLMAYACAK DIŞARDAN ALINACAK. \\\
+    // Veya araçlar üretilirken kullanılabilir.
+    Car removedCar= null;
+    public void CreateCar() {
+        Random random = new Random();
+        int[] carSize = {5};
+
+        for (int i = 0; i < carSize.length; i++) {
+            for (int j = 0; j < carSize[i]+2; j++) {
+                queues1[i].add(new Car(400+(j*30),200));
+            }
+        }
+
+    }
+    // Bu static olacak işi sonu rahatlık olsun diye şuan değil.
+    public Car RemoveQueueAndUpdate() {
+        int greenLightDuration = 5000; // 5 saniye
+        long tic;
+        long toc;
+        Car removedCar = null;
+
+        for (int i = 0; i < queues1.length; i++) {
+            tic = System.currentTimeMillis();
+
+            while ((toc = System.currentTimeMillis()) - tic < greenLightDuration) {
+                removedCar = queues1[i].poll();
+
+                if (removedCar != null) {
+                    // Araçları güncelle
+                    int pos = 0;
+                    for (Car c : queues1[i]) {
+                        c.setPosition(pos + 10, pos + 10);
+                        pos++;
+                    }
+                    try {
+                        Thread.sleep(2000); // 1 saniye gecikme
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        System.out.println("Uyuma kesildi.");
+                    }
+                    return removedCar;
+                } else {
+                    System.out.println("Kuyrukta araç kalmadı.");
+                    break;
+                }
+            }
+        }
+
+        return null; // Hiçbir kuyrukta araç yoksa
+    }
+
+
+}
