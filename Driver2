@@ -1,0 +1,241 @@
+package edu.erciyes.group25;
+
+import javafx.animation.PathTransition;
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.layout.Pane;
+import javafx.scene.shape.*;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+
+public class Driver extends Application {
+
+
+
+    @Override
+    public void start(Stage stage) throws Exception {
+
+
+        // Road sınıfından nesen türetiyorum ki fonksyionlarına erişeyim
+        RoadWestRight roadWestRight = new RoadWestRight();
+        // Burada arabaları kuyruğa ekletiyroum
+        roadWestRight.CreateCar();
+
+
+        // root oluşturup kuyruğu ekrana veriyorum. While ın içinde hata alıyorum
+        Pane root = new Pane();
+
+        // Bu kısımda kuyruğu
+        Car[] geciciCar = roadWestRight.queue1.toArray(new Car[0]); // Bu yapı Java 6 dan sonra kullanılıyormus. Kuyruğu diziye kopyalıyor
+        for (Car car : geciciCar) {
+            root.getChildren().add(car);
+        }
+
+
+        // Araba Modu değişkeni ile while döngüsünün artığı olan arabaları yakalamaya çalıştım ANCAK olmadı :(
+        //int arabamodu = (roadWestRight.queue1.size())%3;
+
+
+        //Burade Path ve PathTransition nesnelerimi oluşturuyorum     DİKKAT! Bu nesne döngüde oluşturulmazsa bir nesne oluşturulur hepsi o nesne üzerinden gider
+        Path path1= new Path();
+        PathTransition pt1 = new PathTransition();
+        // 2 araç arka arkaya gitsin diye 2. nesneler oluşturuluyor
+        Path path2= new Path();
+        PathTransition pt2 = new PathTransition();
+        // 3. araç da arkadan gelecek
+        Path path3= new Path();
+        PathTransition pt3 = new PathTransition();
+
+
+
+        // Burada döngüye alıyorum. Create ve Pane döngüye alınmayacak. Her seferinde yeni kuyruk oluşturmamak için -Her seferinde yeni Pencere oluşturmamak için
+        while (true){
+
+            //Burada kuyruğumu ekrana verityorum. VEREMİYORUM !!
+            //root.getChildren().addAll(roadWestRight.queue1);
+
+            // Kuyruktaki ilk elemeanı alıyorum
+            Car removedCar = roadWestRight.RemoveQueueAndUpdate();
+            // Kuyruktaki ikinci elemeanı alıyorum
+            Car removedCar2 = roadWestRight.RemoveQueueAndUpdate();
+            // Kuyruktaki 3. elemanı alıyorum
+            Car removedCar3 = roadWestRight.RemoveQueueAndUpdate();
+
+            // Burada nesnenin boş olmadığını kontrol ediyorum. NOT: Node türleri null olamaz
+            if(removedCar == null) break;
+            // Burada nesnenin boş olmadığını kontrol ediyorum. NOT: Node türleri null olamaz
+            if(removedCar2 == null) break;
+            // Burada nesnenin boş olmadığını kontrol ediyorum. NOT: Node türleri null olamaz
+            if(removedCar3 == null) break;
+
+            //Burada kendi yolumu oluşturuyorum
+            path1.getElements().add(new MoveTo(500,200));
+            path1.getElements().add(new LineTo(200,200));
+            path1.getElements().add(new QuadCurveTo(100,400,400,400));
+            //Burada kendi yolumu oluşturuyorum
+            path2.getElements().add(new MoveTo(500,200));
+            path2.getElements().add(new LineTo(200,200));
+            path2.getElements().add(new QuadCurveTo(100,400,400,400));
+            // 3. Aracın yolu
+            path3.getElements().add(new MoveTo(500,200));
+            path3.getElements().add(new LineTo(200,200));
+            path3.getElements().add(new QuadCurveTo(100,400,400,400));
+
+            // En son visible lar false idi o yüzden tekrar true yaptık
+            removedCar.setVisible(true);
+            removedCar2.setVisible(true);
+            removedCar3.setVisible(true);
+
+            // Burada süreyi ayarlıyorum. Path i set liyorum ve node u ekliyorum. Bilindik sıralı işlemler
+            pt1.setDuration(Duration.seconds(10));
+            pt1.setPath(path1);
+            pt1.setNode(removedCar);
+            pt1.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
+            pt1.setCycleCount(1);
+            // Burada süreyi ayarlıyorum. Path i set liyorum ve node u ekliyorum
+            pt2.setDuration(Duration.seconds(10));
+            pt2.setPath(path1);
+            if (removedCar2 != null) pt2.setNode(removedCar2);
+            pt2.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
+            pt2.setCycleCount(1);
+            // 3. araç için pathtransition
+            pt3.setDuration(Duration.seconds(10));
+            pt3.setPath(path1);
+            if (removedCar3 != null) pt3.setNode(removedCar3);
+            pt2.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
+            pt2.setCycleCount(1);
+
+
+            // Burada yolu bitirince yok ediyorum
+            pt1.setOnFinished(e ->{
+                removedCar.setVisible(false);
+                root.getChildren().removeAll(removedCar);
+            });
+
+            try {
+                Thread.sleep(1000); // 1 saniye gecikme
+            } catch (InterruptedException c) {
+                Thread.currentThread().interrupt();
+                System.out.println("Uyuma kesildi.");
+            }
+
+            // Burada yolu bitirince yok ediyorum
+            pt2.setOnFinished(e ->{
+                removedCar2.setVisible(false);
+                root.getChildren().removeAll(removedCar2);
+            });
+
+            try {
+                Thread.sleep(1000); // 1 saniye gecikme
+            } catch (InterruptedException c) {
+                Thread.currentThread().interrupt();
+                System.out.println("Uyuma kesildi.");
+            }
+
+            // 3. araç yolu bitirince
+            pt3.setOnFinished(e ->{
+                removedCar3.setVisible(false);
+                root.getChildren().removeAll(removedCar3);
+            });
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException c) {
+                Thread.currentThread().interrupt();
+                System.out.println("Uyuma kesildi.");
+            }
+
+        }
+
+
+/*               Burada çalışırken hata veriyor
+                Bu kısmın temel mantığı 3 lülerden artan arabaları yakalamak fakat OLMUYOR
+        if (arabamodu ==2 && roadWestRight.RemoveQueueAndUpdate() != null) {
+            Car removedCar= roadWestRight.RemoveQueueAndUpdate();
+            Car removedCar2= roadWestRight.RemoveQueueAndUpdate();
+            path1.getElements().add(new MoveTo(500,200));
+            path1.getElements().add(new LineTo(200,200));
+            path1.getElements().add(new QuadCurveTo(100,400,400,400));
+            path2.getElements().add(new MoveTo(500,200));
+            path2.getElements().add(new LineTo(200,200));
+            path2.getElements().add(new QuadCurveTo(100,400,400,400));
+            removedCar.setVisible(true);
+            removedCar2.setVisible(true);
+            pt1.setDuration(Duration.seconds(10));
+            pt1.setPath(path1);
+            pt1.setNode(removedCar);
+            pt1.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
+            pt1.setCycleCount(1);
+            pt2.setDuration(Duration.seconds(10));
+            pt2.setPath(path2);
+            pt2.setNode(removedCar2);
+            pt2.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
+            pt2.setCycleCount(1);
+            pt1.setOnFinished(e ->{
+                removedCar.setVisible(false);
+                root.getChildren().removeAll(removedCar);
+            });
+
+            try {
+                Thread.sleep(1000); // 1 saniye gecikme
+            } catch (InterruptedException c) {
+                Thread.currentThread().interrupt();
+                System.out.println("Uyuma kesildi.");
+            }
+
+            pt2.setOnFinished(e ->{
+                removedCar2.setVisible(false);
+                root.getChildren().removeAll(removedCar2);
+            });
+
+            try {
+                Thread.sleep(1000); // 1 saniye gecikme
+            } catch (InterruptedException c) {
+                Thread.currentThread().interrupt();
+                System.out.println("Uyuma kesildi.");
+            }
+
+        }
+        if (arabamodu == 1 && roadWestRight.RemoveQueueAndUpdate() != null) {
+            Car removedCar= roadWestRight.RemoveQueueAndUpdate();
+            path1.getElements().add(new MoveTo(500,200));
+            path1.getElements().add(new LineTo(200,200));
+            path1.getElements().add(new QuadCurveTo(100,400,400,400));
+            removedCar.setVisible(true);
+            pt1.setDuration(Duration.seconds(10));
+            pt1.setPath(path1);
+            pt1.setNode(removedCar);
+            pt1.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
+            pt1.setCycleCount(1);
+            pt1.setOnFinished(e ->{
+                removedCar.setVisible(false);
+                root.getChildren().removeAll(removedCar);
+            });
+
+            try {
+                Thread.sleep(1000); // 1 saniye gecikme
+            } catch (InterruptedException c) {
+                Thread.currentThread().interrupt();
+                System.out.println("Uyuma kesildi.");
+            }
+        }*/
+
+
+        // Işık sıstemi için buraya set duration timer a ayrı değişken eklenecek -> Burası ışık ayarlamaları
+
+        pt1.play();
+        pt2.setDelay(Duration.seconds(1)); // Arabalar arasına mesafe koyuyoruz
+        pt2.play();
+        pt3.setDelay(Duration.seconds(2)); // Arabalar arası mesafe
+        pt3.play();
+
+
+        root.setPrefSize(800, 800);
+        stage.setScene(new Scene(root,600,600));
+        stage.show();
+
+
+    }
+}
+
+
