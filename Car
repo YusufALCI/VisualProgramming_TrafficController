@@ -1,0 +1,22 @@
+package edu.erciyes.group25;
+
+
+
+import javafx.scene.shape.Rectangle;
+
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Random;
+
+public class Car extends Rectangle implements Moveable {
+
+    public Car(int x, int y) {
+        super(x, y, 20, 30);
+    }
+
+    public void setPosition(int x, int y) {
+        this.setX(x);
+        this.setY(y);
+    }
+
+}
