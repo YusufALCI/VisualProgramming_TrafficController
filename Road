@@ -1,0 +1,5 @@
+package edu.erciyes.group25;
+
+public abstract class Road {
+
+}
