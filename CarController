@@ -38,6 +38,8 @@ public class CarController {
         // Set initial position
         carView.setTranslateX(car.getxCar());
         carView.setTranslateY(car.getyCar());
+        carView.setTranslateX(car.getxCar() - carView.getBoundsInLocal().getWidth() / 2);
+        carView.setTranslateY(car.getyCar() - carView.getBoundsInLocal().getHeight() / 2);
         shape.fillProperty().bind(car.colorProperty());
 
         carViewMap.put(car, carView);
@@ -132,5 +134,8 @@ public class CarController {
     public void stopAllMovements() {
         activeTransitions.values().forEach(PathTransition::stop);
         activeTransitions.clear();
+    }
+    public void activatePathForQueue(int queueIndex) {
+        moveCarFromQueue(queueIndex);
     }
 }
