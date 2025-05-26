@@ -1,0 +1,5 @@
+package com.example.denemecontrol;
+
+public class TrafficSimulatorView {
+    //Burada başlat, duraklat, bitir butonları olacak.
+}
