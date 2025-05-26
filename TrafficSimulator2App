@@ -28,9 +28,9 @@ public class TrafficSimulator2App extends Application {
         controller = new CarController(model, root);
 
         // Generate cars in queues
-        generateCars(0, 5, 380, 0, 60);   // Kuzeyden aşağı
-        generateCars(1, 5, 420, 600, 60); // Güneyden yukarı
-        generateCars(2, 5, 800, 280, 60); // Doğudan sola
+        generateCars(0, 5, 400, 0, 30);   // Kuzeyden aşağı
+        generateCars(1, 5, 420, 600, 30); // Güneyden yukarı
+        generateCars(2, 5, 800, 280, 30); // Doğudan sola
         generateCars(3, 5, 0, 320, 60);   // Batıdan sağa
 
         // Setup traffic light timing
@@ -44,7 +44,6 @@ public class TrafficSimulator2App extends Application {
         javafx.scene.shape.Line horizontalRoad = new javafx.scene.shape.Line(0, 300, 800, 300);
         horizontalRoad.setStroke(javafx.scene.paint.Color.GRAY);
         horizontalRoad.setStrokeWidth(40);
-
         // Vertical road
         javafx.scene.shape.Line verticalRoad = new javafx.scene.shape.Line(400, 0, 400, 600);
         verticalRoad.setStroke(javafx.scene.paint.Color.GRAY);
@@ -77,25 +76,26 @@ public class TrafficSimulator2App extends Application {
                         controller.activatePathForQueue(queueIndex);
                     }
                 }
-                );
+                ));
         queueTimeline.setCycleCount(4); // Move up to 4 more cars
         queueTimeline.play();
     }
 
     private void generateCars(int queueIndex, int carCount, double startX, double startY, double spacing) {
-        for (int i = 0; i < carCount; i++) {
+        for (int i = carCount - 1; i >= 0; i--) {
+            // Bu döngü tersten olmalı aksi halde araçlar kuyruğun sonundan hareket ediyor.
             Car car;
             switch (queueIndex) {
-                case 0: // Kuzey - aşağı
+                case 0:
                     car = new Car(startX, startY + (i * spacing));
                     break;
-                case 1: // Güney - yukarı
+                case 1:
                     car = new Car(startX, startY - (i * spacing));
                     break;
-                case 2: // Doğu - sola
+                case 2:
                     car = new Car(startX - (i * spacing), startY);
                     break;
-                case 3: // Batı - sağa
+                case 3:
                     car = new Car(startX + (i * spacing), startY);
                     break;
                 default:
@@ -103,8 +103,8 @@ public class TrafficSimulator2App extends Application {
             }
             controller.addCar(car, queueIndex);
         }
-    }
 
+    }
     @Override
     public void stop() {
         if (trafficLightTimeline != null) {
