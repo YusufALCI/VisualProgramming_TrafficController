@@ -1,0 +1,25 @@
+package com.example.denemecontrol;
+
+
+import java.util.LinkedList;
+import java.util.Queue;
+
+public class RoadModel {
+    // These queues are intentionally public for direct access in CarController for simplicity,
+    // though private with getters is generally preferred for strict encapsulation.
+    public final Queue<Car> queue1 = new LinkedList<>(); // North (0)
+    public final Queue<Car> queue2 = new LinkedList<>(); // South (1)
+    public final Queue<Car> queue3 = new LinkedList<>(); // East (2)
+    public final Queue<Car> queue4 = new LinkedList<>(); // West (3)
+
+    // Helper method to get a queue by index (recommended for better encapsulation)
+    public Queue<Car> getQueue(int index) {
+        return switch (index) {
+            case 0 -> queue1;
+            case 1 -> queue2;
+            case 2 -> queue3;
+            case 3 -> queue4;
+            default -> throw new IllegalArgumentException("Invalid queue index: " + index);
+        };
+    }
+}
