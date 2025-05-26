@@ -1,0 +1,50 @@
+package com.example.denemecontrol;
+
+import javafx.beans.property.*;
+import javafx.scene.paint.Color;
+
+import java.util.Random;
+
+public class Car {
+    // Bind işlemde asDouble() gerekli unutma
+    private final DoubleProperty xCar = new SimpleDoubleProperty();
+    private final DoubleProperty yCar = new SimpleDoubleProperty();
+    private final ObjectProperty<Color> color = new SimpleObjectProperty<>();
+
+    public Car(double x, double y) {
+        this.xCar.set(x);
+        this.yCar.set(y);
+        color.set(generateRandomColor());
+    }
+    public ObjectProperty<Color> colorProperty() {
+        return color;
+    }
+
+    public Color getColor() {
+        return color.get();
+    }
+
+    public void setPosition(double x, double y) {
+        this.xCar.set(x);
+        this.yCar.set(y);
+    }
+
+    private Color generateRandomColor() {
+        Random rand = new Random();
+        return Color.color(rand.nextDouble(), rand.nextDouble(), rand.nextDouble());
+    }
+
+    public double getyCar() { return yCar.get(); }
+    public DoubleProperty yCarProperty() { return yCar; }
+    public void setyCar(double yCar) { this.yCar.set(yCar); }
+
+    public double getxCar() { return xCar.get(); }
+    public DoubleProperty xCarProperty() { return xCar; }
+    public void setxCar(double xCar) { this.xCar.set(xCar); }
+
+    @Override
+    public String toString() {
+        return "Car [x=" + getxCar() + ", y=" + getyCar() + "]";
+    }
+}
+
