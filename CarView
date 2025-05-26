@@ -1,0 +1,22 @@
+package com.example.denemecontrol;
+
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+
+public class CarView extends Pane {
+    private final Rectangle carShape;
+
+    public CarView(double width, double height) {
+        carShape = new Rectangle(width, height);
+        carShape.setArcWidth(10);  // isteğe bağlı: köşeleri yuvarlat
+        carShape.setArcHeight(10);
+        getChildren().add(carShape);
+    }
+
+    // Controller bu nesneye ulaşır.
+    public Rectangle getCarShape() {
+        return carShape;
+    }
+}
+
