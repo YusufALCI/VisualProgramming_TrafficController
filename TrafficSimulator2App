@@ -1,0 +1,114 @@
+package com.example.denemecontrol;
+
+
+
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.layout.AnchorPane;
+import javafx.stage.Stage;
+import javafx.util.Duration;
+
+public class TrafficSimulator2App extends Application {
+    private final RoadModel model = new RoadModel();
+    private final AnchorPane root = new AnchorPane();
+    private CarController controller;
+    private Timeline trafficLightTimeline;
+
+    @Override
+    public void start(Stage primaryStage) {
+        Scene scene = new Scene(root, 800, 600);
+        primaryStage.setTitle("Trafik Simülasyonu");
+        primaryStage.setScene(scene);
+
+        // Add intersection visualization
+        drawIntersection();
+
+        controller = new CarController(model, root);
+
+        // Generate cars in queues
+        generateCars(0, 5, 380, 0, 60);   // Kuzeyden aşağı
+        generateCars(1, 5, 420, 600, 60); // Güneyden yukarı
+        generateCars(2, 5, 800, 280, 60); // Doğudan sola
+        generateCars(3, 5, 0, 320, 60);   // Batıdan sağa
+
+        // Setup traffic light timing
+        setupTrafficLightCycle();
+
+        primaryStage.show();
+    }
+
+    private void drawIntersection() {
+        // Horizontal road
+        javafx.scene.shape.Line horizontalRoad = new javafx.scene.shape.Line(0, 300, 800, 300);
+        horizontalRoad.setStroke(javafx.scene.paint.Color.GRAY);
+        horizontalRoad.setStrokeWidth(40);
+
+        // Vertical road
+        javafx.scene.shape.Line verticalRoad = new javafx.scene.shape.Line(400, 0, 400, 600);
+        verticalRoad.setStroke(javafx.scene.paint.Color.GRAY);
+        verticalRoad.setStrokeWidth(40);
+
+        root.getChildren().addAll(horizontalRoad, verticalRoad);
+    }
+
+    private void setupTrafficLightCycle() {
+        trafficLightTimeline = new Timeline(
+                new KeyFrame(Duration.seconds(0), e -> activateQueue(0)), // North
+                new KeyFrame(Duration.seconds(5), e -> activateQueue(1)), // South
+                new KeyFrame(Duration.seconds(10), e -> activateQueue(2)), // East
+                new KeyFrame(Duration.seconds(15), e -> activateQueue(3))  // West
+        );
+        trafficLightTimeline.setCycleCount(Timeline.INDEFINITE);
+        trafficLightTimeline.play();
+    }
+
+    private void activateQueue(int queueIndex) {
+        // Move first car in queue
+        if (!model.getQueue(queueIndex).isEmpty()) {
+            controller.activatePathForQueue(queueIndex);
+        }
+
+        // Schedule next car in this queue after a delay
+        Timeline queueTimeline = new Timeline(
+                new KeyFrame(Duration.seconds(1), e -> {
+                    if (!model.getQueue(queueIndex).isEmpty()) {
+                        controller.activatePathForQueue(queueIndex);
+                    }
+                }
+                );
+        queueTimeline.setCycleCount(4); // Move up to 4 more cars
+        queueTimeline.play();
+    }
+
+    private void generateCars(int queueIndex, int carCount, double startX, double startY, double spacing) {
+        for (int i = 0; i < carCount; i++) {
+            Car car;
+            switch (queueIndex) {
+                case 0: // Kuzey - aşağı
+                    car = new Car(startX, startY + (i * spacing));
+                    break;
+                case 1: // Güney - yukarı
+                    car = new Car(startX, startY - (i * spacing));
+                    break;
+                case 2: // Doğu - sola
+                    car = new Car(startX - (i * spacing), startY);
+                    break;
+                case 3: // Batı - sağa
+                    car = new Car(startX + (i * spacing), startY);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Geçersiz kuyruk indexi: " + queueIndex);
+            }
+            controller.addCar(car, queueIndex);
+        }
+    }
+
+    @Override
+    public void stop() {
+        if (trafficLightTimeline != null) {
+            trafficLightTimeline.stop();
+        }
+    }
+}
