@@ -1,12 +1,12 @@
 package com.example.denemecontrol;
 
-
-
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Line;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
@@ -14,101 +14,72 @@ public class TrafficSimulator2App extends Application {
     private final RoadModel model = new RoadModel();
     private final AnchorPane root = new AnchorPane();
     private CarController controller;
-    private Timeline trafficLightTimeline;
 
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage stage) {
+        controller = new CarController(model, root);
         Scene scene = new Scene(root, 800, 600);
-        primaryStage.setTitle("Trafik Simülasyonu");
-        primaryStage.setScene(scene);
+        stage.setTitle("Trafik Simülasyonu");
+        stage.setScene(scene);
 
-        // Add intersection visualization
         drawIntersection();
 
-        controller = new CarController(model, root);
+        // Tüm yönler için başlangıç konumu, yön ve sayısı
+        //    index, count, startX, startY, dx, dy
+        double[][] config = {
+                {0, 10, 390,  80,  0, -30},  // Kuzey - yukardan geliyor
+                {1, 5, 420, 520,  0,  30},  // Güney - aşağıdan geliyor
+                {2, 5, 750, 280, -30,  0},  // Doğu  - sağdan sola
+                {3, 5,  50, 320,  30,  0}   // Batı  - soldan sağa
+        };
 
-        // Generate cars in queues
-        generateCars(0, 5, 400, 0, 30);   // Kuzeyden aşağı
-        generateCars(1, 5, 420, 600, 30); // Güneyden yukarı
-        generateCars(2, 5, 800, 280, 30); // Doğudan sola
-        generateCars(3, 5, 0, 320, 60);   // Batıdan sağa
 
-        // Setup traffic light timing
+        for (double[] c : config)
+            generateCars((int) c[0], (int) c[1], c[2], c[3], c[4], c[5]);
+
         setupTrafficLightCycle();
-
-        primaryStage.show();
+        stage.show();
     }
 
     private void drawIntersection() {
-        // Horizontal road
-        javafx.scene.shape.Line horizontalRoad = new javafx.scene.shape.Line(0, 300, 800, 300);
-        horizontalRoad.setStroke(javafx.scene.paint.Color.GRAY);
-        horizontalRoad.setStrokeWidth(40);
-        // Vertical road
-        javafx.scene.shape.Line verticalRoad = new javafx.scene.shape.Line(400, 0, 400, 600);
-        verticalRoad.setStroke(javafx.scene.paint.Color.GRAY);
-        verticalRoad.setStrokeWidth(40);
-
-        root.getChildren().addAll(horizontalRoad, verticalRoad);
+        Line hRoad = new Line(0, 300, 800, 300);
+        Line vRoad = new Line(400, 0, 400, 600);
+        hRoad.setStroke(Color.GRAY);
+        vRoad.setStroke(Color.GRAY);
+        hRoad.setStrokeWidth(50);
+        vRoad.setStrokeWidth(50);
+        root.getChildren().addAll(hRoad, vRoad);
     }
 
     private void setupTrafficLightCycle() {
-        trafficLightTimeline = new Timeline(
-                new KeyFrame(Duration.seconds(0), e -> activateQueue(0)), // North
-                new KeyFrame(Duration.seconds(5), e -> activateQueue(1)), // South
-                new KeyFrame(Duration.seconds(10), e -> activateQueue(2)), // East
-                new KeyFrame(Duration.seconds(15), e -> activateQueue(3))  // West
-        );
-        trafficLightTimeline.setCycleCount(Timeline.INDEFINITE);
-        trafficLightTimeline.play();
-    }
-
-    private void activateQueue(int queueIndex) {
-        // Move first car in queue
-        if (!model.getQueue(queueIndex).isEmpty()) {
-            controller.activatePathForQueue(queueIndex);
+        Timeline trafficCycle = new Timeline();
+        for (int i = 0; i < 4; i++) {
+            int index = i;
+            trafficCycle.getKeyFrames().add(new KeyFrame(Duration.seconds(i * 5), e -> activateQueue(index)));
         }
-
-        // Schedule next car in this queue after a delay
-        Timeline queueTimeline = new Timeline(
-                new KeyFrame(Duration.seconds(1), e -> {
-                    if (!model.getQueue(queueIndex).isEmpty()) {
-                        controller.activatePathForQueue(queueIndex);
-                    }
-                }
-                ));
-        queueTimeline.setCycleCount(4); // Move up to 4 more cars
-        queueTimeline.play();
+        trafficCycle.setCycleCount(Timeline.INDEFINITE);
+        trafficCycle.play();
     }
 
-    private void generateCars(int queueIndex, int carCount, double startX, double startY, double spacing) {
+    private void activateQueue(int index) {
+        Timeline t = new Timeline(new KeyFrame(Duration.seconds(0.5), e -> {
+            if (!model.getQueue(index).isEmpty())
+                controller.activatePathForQueue(index);
+        }));
+        t.setCycleCount(Timeline.INDEFINITE);
+        t.play();
+    }
+
+    private void generateCars(int queueIndex, int carCount, double startX, double startY, double offsetX, double offsetY) {
+        // Araçları sondan başa doğru yerleştirerek birbirine çakışmamalarını sağlıyoruz
         for (int i = carCount - 1; i >= 0; i--) {
-            // Bu döngü tersten olmalı aksi halde araçlar kuyruğun sonundan hareket ediyor.
-            Car car;
-            switch (queueIndex) {
-                case 0:
-                    car = new Car(startX, startY + (i * spacing));
-                    break;
-                case 1:
-                    car = new Car(startX, startY - (i * spacing));
-                    break;
-                case 2:
-                    car = new Car(startX - (i * spacing), startY);
-                    break;
-                case 3:
-                    car = new Car(startX + (i * spacing), startY);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Geçersiz kuyruk indexi: " + queueIndex);
-            }
-            controller.addCar(car, queueIndex);
-        }
+            // Her aracın konumunu başlangıç noktasından uzaklaştırarak hesapla
+            double x = startX - (i * offsetX);
+            double y = startY - (i * offsetY);
 
-    }
-    @Override
-    public void stop() {
-        if (trafficLightTimeline != null) {
-            trafficLightTimeline.stop();
+            // Aracı oluştur ve kontrolcüye ilet
+            Car car = new Car(x, y);
+            controller.addCar(car, queueIndex);
         }
     }
 }
