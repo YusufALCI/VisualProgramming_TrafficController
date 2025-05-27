@@ -1,85 +1,79 @@
 package com.example.denemecontrol;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
-import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.scene.layout.AnchorPane;
+
+import javafx.animation.PathTransition;
+import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Line;
-import javafx.stage.Stage;
+import javafx.scene.shape.MoveTo;
+import javafx.scene.shape.Path;
+import javafx.scene.shape.LineTo;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
-public class TrafficSimulator2App extends Application {
-    private final RoadModel model = new RoadModel();
-    private final AnchorPane root = new AnchorPane();
-    private CarController controller;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Queue;
 
-    @Override
-    public void start(Stage stage) {
-        controller = new CarController(model, root);
-        Scene scene = new Scene(root, 800, 600);
-        stage.setTitle("Trafik Simülasyonu");
-        stage.setScene(scene);
+public class CarController {
+    private final RoadModel model;
+    private final Pane root;
+    private final Map<Car, Rectangle> carViews = new HashMap<>();
 
-        drawIntersection();
-
-        // Tüm yönler için başlangıç konumu, yön ve sayısı
-        //    index, count, startX, startY, dx, dy
-        double[][] config = {
-                {0, 10, 390,  80,  0, -30},  // Kuzey - yukardan geliyor
-                {1, 5, 420, 520,  0,  30},  // Güney - aşağıdan geliyor
-                {2, 5, 750, 280, -30,  0},  // Doğu  - sağdan sola
-                {3, 5,  50, 320,  30,  0}   // Batı  - soldan sağa
-        };
-
-
-        for (double[] c : config)
-            generateCars((int) c[0], (int) c[1], c[2], c[3], c[4], c[5]);
-
-        setupTrafficLightCycle();
-        stage.show();
+    public CarController(RoadModel model, Pane root) {
+        this.model = model;
+        this.root = root;
     }
 
-    private void drawIntersection() {
-        Line hRoad = new Line(0, 300, 800, 300);
-        Line vRoad = new Line(400, 0, 400, 600);
-        hRoad.setStroke(Color.GRAY);
-        vRoad.setStroke(Color.GRAY);
-        hRoad.setStrokeWidth(50);
-        vRoad.setStrokeWidth(50);
-        root.getChildren().addAll(hRoad, vRoad);
+    // Araç ekle ve doğru pozisyona yerleştir (translate kullanarak)
+    public void addCar(Car car, int queueIndex) {
+        Queue<Car> queue = model.getQueue(queueIndex);
+        queue.add(car);
+
+        Rectangle carRect = new Rectangle(20, 10);
+        carRect.setFill(car.getColor());
+
+        // x ve y sıfır, pozisyon translate ile verilir
+        carRect.setX(0);
+        carRect.setY(0);
+
+        carRect.setTranslateX(car.getxCar());
+        carRect.setTranslateY(car.getyCar());
+
+        carViews.put(car, carRect);
+        root.getChildren().add(carRect);
     }
 
-    private void setupTrafficLightCycle() {
-        Timeline trafficCycle = new Timeline();
-        for (int i = 0; i < 4; i++) {
-            int index = i;
-            trafficCycle.getKeyFrames().add(new KeyFrame(Duration.seconds(i * 5), e -> activateQueue(index)));
+    // Kuyruktaki araç için path animasyonu başlat
+    public void activatePathForQueue(int queueIndex) {
+        Queue<Car> queue = model.getQueue(queueIndex);
+        if (queue.isEmpty()) return;
+
+        Car car = queue.poll();
+        Rectangle carRect = carViews.get(car);
+        if (carRect == null) return;
+
+        Path path = new Path();
+
+        // Başlangıç noktası translate değerleri ile aynı olmalı
+        double startX = carRect.getTranslateX();
+        double startY = carRect.getTranslateY();
+        path.getElements().add(new MoveTo(startX, startY));
+
+        // Kuyruk indeksine göre hedef noktayı ayarla
+        switch (queueIndex) {
+            case 0 -> path.getElements().add(new LineTo(startX, 650));  // Kuzeyden aşağı
+            case 1 -> path.getElements().add(new LineTo(startX, -50));  // Güneyden yukarı
+            case 2 -> path.getElements().add(new LineTo(-50, startY));  // Doğudan sola
+            case 3 -> path.getElements().add(new LineTo(850, startY));  // Batıdan sağa
+            default -> throw new IllegalArgumentException("Geçersiz kuyruk indexi: " + queueIndex);
         }
-        trafficCycle.setCycleCount(Timeline.INDEFINITE);
-        trafficCycle.play();
-    }
 
-    private void activateQueue(int index) {
-        Timeline t = new Timeline(new KeyFrame(Duration.seconds(0.5), e -> {
-            if (!model.getQueue(index).isEmpty())
-                controller.activatePathForQueue(index);
-        }));
-        t.setCycleCount(Timeline.INDEFINITE);
-        t.play();
-    }
-
-    private void generateCars(int queueIndex, int carCount, double startX, double startY, double offsetX, double offsetY) {
-        // Araçları sondan başa doğru yerleştirerek birbirine çakışmamalarını sağlıyoruz
-        for (int i = carCount - 1; i >= 0; i--) {
-            // Her aracın konumunu başlangıç noktasından uzaklaştırarak hesapla
-            double x = startX - (i * offsetX);
-            double y = startY - (i * offsetY);
-
-            // Aracı oluştur ve kontrolcüye ilet
-            Car car = new Car(x, y);
-            controller.addCar(car, queueIndex);
-        }
+        PathTransition transition = new PathTransition();
+        transition.setNode(carRect);
+        transition.setDuration(Duration.seconds(3));
+        transition.setPath(path);
+        transition.setOnFinished(e -> root.getChildren().remove(carRect));
+        transition.play();
     }
 }
+
