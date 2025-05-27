@@ -1,141 +1,85 @@
 package com.example.denemecontrol;
 
-
-import javafx.animation.PathTransition;
-import javafx.application.Platform;
-import javafx.scene.layout.Pane;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
-import javafx.scene.shape.Rectangle;
+import javafx.stage.Stage;
 import javafx.util.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Queue;
 
-public class CarController {
-    private final RoadModel model;
-    private final Pane viewPane;
-    private final Map<Car, CarView> carViewMap = new HashMap<>();
-    private final Map<Car, PathTransition> activeTransitions = new HashMap<>();
-    private final double CAR_SPEED = 100; // pixels per second
+public class TrafficSimulator2App extends Application {
+    private final RoadModel model = new RoadModel();
+    private final AnchorPane root = new AnchorPane();
+    private CarController controller;
 
-    public CarController(RoadModel model, Pane viewPane) {
-        this.model = model;
-        this.viewPane = viewPane;
-    }
+    @Override
+    public void start(Stage stage) {
+        controller = new CarController(model, root);
+        Scene scene = new Scene(root, 800, 600);
+        stage.setTitle("Trafik Simülasyonu");
+        stage.setScene(scene);
 
-    public void addCar(Car car, int queueIndex) {
-        getQueueByIndex(queueIndex).add(car);
-        createAndBindCarView(car);
-    }
+        drawIntersection();
 
-    private void createAndBindCarView(Car car) {
-        if (carViewMap.containsKey(car)) {
-            return;
-        }
-        CarView carView = new CarView(20, 20);
-        Rectangle shape = carView.getCarShape();
-
-        // Set initial position
-        carView.setTranslateX(car.getxCar());
-        carView.setTranslateY(car.getyCar());
-        carView.setTranslateX(car.getxCar() - carView.getBoundsInLocal().getWidth() / 2);
-        carView.setTranslateY(car.getyCar() - carView.getBoundsInLocal().getHeight() / 2);
-        shape.fillProperty().bind(car.colorProperty());
-
-        carViewMap.put(car, carView);
-        Platform.runLater(() -> viewPane.getChildren().add(carView));
-    }
-
-    public void moveCarFromQueue(int queueIndex) {
-        Queue<Car> queue = getQueueByIndex(queueIndex);
-        if (queue.isEmpty()) return;
-
-        Car car = queue.poll();
-        CarView carView = carViewMap.get(car);
-        if (carView == null) return;
-
-        Line path = createMovementPath(queueIndex, car.getxCar(), car.getyCar());
-        animateCarAlongPath(car, carView, path);
-    }
-
-    private Line createMovementPath(int queueIndex, double startX, double startY) {
-        return switch (queueIndex) {
-            case 0 -> new Line(startX, startY, startX, 600); // North to South
-            case 1 -> new Line(startX, startY, startX, 0);   // South to North
-            case 2 -> new Line(startX, startY, 0, startY);   // East to West
-            case 3 -> new Line(startX, startY, 800, startY); // West to East
-            default -> throw new IllegalArgumentException("Invalid queue index");
+        // Tüm yönler için başlangıç konumu, yön ve sayısı
+        //    index, count, startX, startY, dx, dy
+        double[][] config = {
+                {0, 10, 390,  80,  0, -30},  // Kuzey - yukardan geliyor
+                {1, 5, 420, 520,  0,  30},  // Güney - aşağıdan geliyor
+                {2, 5, 750, 280, -30,  0},  // Doğu  - sağdan sola
+                {3, 5,  50, 320,  30,  0}   // Batı  - soldan sağa
         };
+
+
+        for (double[] c : config)
+            generateCars((int) c[0], (int) c[1], c[2], c[3], c[4], c[5]);
+
+        setupTrafficLightCycle();
+        stage.show();
     }
 
-    private void animateCarAlongPath(Car car, CarView carView, Line path) {
-        double pathLength = Math.sqrt(Math.pow(path.getEndX() - path.getStartX(), 2) +
-                Math.pow(path.getEndY() - path.getStartY(), 2));
-        double durationSeconds = pathLength / CAR_SPEED;
-
-        PathTransition transition = new PathTransition();
-        transition.setNode(carView);
-        transition.setPath(path);
-        transition.setDuration(Duration.seconds(durationSeconds));
-        transition.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
-
-        transition.setOnFinished(e -> {
-            activeTransitions.remove(car);
-            removeCar(car);
-        });
-
-        activeTransitions.put(car, transition);
-        transition.play();
+    private void drawIntersection() {
+        Line hRoad = new Line(0, 300, 800, 300);
+        Line vRoad = new Line(400, 0, 400, 600);
+        hRoad.setStroke(Color.GRAY);
+        vRoad.setStroke(Color.GRAY);
+        hRoad.setStrokeWidth(50);
+        vRoad.setStrokeWidth(50);
+        root.getChildren().addAll(hRoad, vRoad);
     }
 
-    public CarView getCarViewForCar(Car car) {
-        return carViewMap.get(car);
-    }
-
-    public void displayCarsFromQueue(Queue<Car> carQueue) {
-        for (Car car : carQueue) {
-            createAndBindCarView(car);
+    private void setupTrafficLightCycle() {
+        Timeline trafficCycle = new Timeline();
+        for (int i = 0; i < 4; i++) {
+            int index = i;
+            trafficCycle.getKeyFrames().add(new KeyFrame(Duration.seconds(i * 5), e -> activateQueue(index)));
         }
+        trafficCycle.setCycleCount(Timeline.INDEFINITE);
+        trafficCycle.play();
     }
 
-    public void removeCar(Car car) {
-        CarView carView = carViewMap.remove(car);
-        if (carView != null) {
-            Platform.runLater(() -> viewPane.getChildren().remove(carView));
+    private void activateQueue(int index) {
+        Timeline t = new Timeline(new KeyFrame(Duration.seconds(0.5), e -> {
+            if (!model.getQueue(index).isEmpty())
+                controller.activatePathForQueue(index);
+        }));
+        t.setCycleCount(Timeline.INDEFINITE);
+        t.play();
+    }
+
+    private void generateCars(int queueIndex, int carCount, double startX, double startY, double offsetX, double offsetY) {
+        // Araçları sondan başa doğru yerleştirerek birbirine çakışmamalarını sağlıyoruz
+        for (int i = carCount - 1; i >= 0; i--) {
+            // Her aracın konumunu başlangıç noktasından uzaklaştırarak hesapla
+            double x = startX - (i * offsetX);
+            double y = startY - (i * offsetY);
+
+            // Aracı oluştur ve kontrolcüye ilet
+            Car car = new Car(x, y);
+            controller.addCar(car, queueIndex);
         }
-    }
-
-    public void updateAllCarPositions() {
-        updateQueue(model.queue1, 50, 100);
-        updateQueue(model.queue2, 200, 200);
-        updateQueue(model.queue3, 350, 300);
-        updateQueue(model.queue4, 500, 400);
-    }
-
-    private void updateQueue(Queue<Car> queue, int baseX, int baseY) {
-        int spacing = 60;
-        int i = 0;
-        for (Car car : queue) {
-            car.setPosition(baseX + i * spacing, baseY);
-            i++;
-        }
-    }
-
-    private Queue<Car> getQueueByIndex(int index) {
-        return switch (index) {
-            case 0 -> model.queue1;
-            case 1 -> model.queue2;
-            case 2 -> model.queue3;
-            case 3 -> model.queue4;
-            default -> throw new IllegalArgumentException("Geçersiz kuyruk indexi: " + index);
-        };
-    }
-
-    public void stopAllMovements() {
-        activeTransitions.values().forEach(PathTransition::stop);
-        activeTransitions.clear();
-    }
-    public void activatePathForQueue(int queueIndex) {
-        moveCarFromQueue(queueIndex);
     }
 }
